@@ -24,11 +24,14 @@ use scripting additions
 on run
 	set spokenText to ""
 	set handledInTextControl to false
+	set debugInfo to "identifier |"
 
 	try
 		tell application "System Events"
 			set frontProcess to first process whose frontmost is true
+			set frontAppName to name of frontProcess
 			set focusedEl to value of attribute "AXFocusedUIElement" of frontProcess
+			set focusedRole to value of attribute "AXRole" of focusedEl
 			set selRange to value of attribute "AXSelectedTextRange" of focusedEl
 			set fullText to value of attribute "AXValue" of focusedEl
 		end tell
@@ -39,6 +42,10 @@ on run
 
 		set spokenText to my resolveSpokenText(fullText, textLen, axLocation, axLength)
 		set handledInTextControl to true
+
+		set debugInfo to debugInfo & " frontApp=" & frontAppName & " role=" & focusedRole & " textLen=" & textLen & " axLocation=" & axLocation & " axLength=" & axLength & " resolved=[" & my previewOf(spokenText, 150) & "] fullTextPreview=[" & my previewOf(fullText, 250) & "]"
+	on error errMsg
+		set debugInfo to debugInfo & " SystemEvents-ERROR: " & errMsg
 	end try
 
 	-- Not a text control (or the Accessibility call failed): fall back to
@@ -48,8 +55,13 @@ on run
 			tell application "VoiceOver"
 				set spokenText to text under cursor of vo cursor
 			end tell
+			set debugInfo to debugInfo & " VOcursorFallback=[" & my previewOf(spokenText, 250) & "]"
+		on error errMsg2
+			set debugInfo to debugInfo & " VOcursorFallback-ERROR: " & errMsg2
 		end try
 	end if
+
+	my logDebug(debugInfo)
 
 	if spokenText is "" then
 		tell application "VoiceOver" to output "Nothing to read"
@@ -59,11 +71,49 @@ on run
 	tell application "VoiceOver" to output my splitCamelCase(spokenText)
 end run
 
+-- Appends a line to ~/Library/Logs/VoiceOverExtensions.log for troubleshooting.
+-- Never lets a logging failure interrupt the main behaviour.
+on logDebug(msg)
+	try
+		set ts to (do shell script "date '+%Y-%m-%d %H:%M:%S'")
+		set logPath to (POSIX path of (path to library folder from user domain)) & "Logs/VoiceOverExtensions.log"
+		do shell script "printf '%s\n' " & quoted form of (ts & " | " & msg) & " >> " & quoted form of logPath
+	end try
+end logDebug
+
+-- Truncates text to maxLen characters and replaces line breaks with visible
+-- "\n"/"\r" markers so a preview stays on one log line.
+on previewOf(theText, maxLen)
+	set t to theText
+	if (length of t) > maxLen then set t to (text 1 thru maxLen of t) & "…"
+
+	set AppleScript's text item delimiters to linefeed
+	set theParts to text items of t
+	set AppleScript's text item delimiters to "\\n"
+	set t to theParts as text
+
+	set AppleScript's text item delimiters to return
+	set theParts to text items of t
+	set AppleScript's text item delimiters to "\\r"
+	set t to theParts as text
+
+	set AppleScript's text item delimiters to ""
+	return t
+end previewOf
+
 -- Decides what to speak for a focused text control, given its full value
 -- and the raw (0-based) Accessibility selection location/length:
---   1. A real selection -> the selection.
+--   1. A real, single-line selection -> the selection.
 --   2. Caret touching a word -> that word.
 --   3. Otherwise -> the whole current line.
+--
+-- A selection that spans multiple lines is treated as if there were no
+-- selection at all: VoiceOver itself leaves a selection behind in a text
+-- control as it navigates (to visually mark what it's reading), and that
+-- can span a large multi-line range with no relation to what the user
+-- actually wants read. A deliberate user selection is normally confined to
+-- one line, so this heuristic keeps rule 1 for genuine selections while
+-- ignoring VoiceOver's own navigation artifacts.
 on resolveSpokenText(fullText, textLen, axLocation, axLength)
 	if textLen is 0 then return ""
 
@@ -72,8 +122,12 @@ on resolveSpokenText(fullText, textLen, axLocation, axLength)
 		set selEnd to axLocation + axLength
 		if selStart < 1 then set selStart to 1
 		if selEnd > textLen then set selEnd to textLen
-		if selStart > selEnd then return ""
-		return text selStart thru selEnd of fullText
+		if selStart <= selEnd then
+			set selText to text selStart thru selEnd of fullText
+			if (selText does not contain linefeed) and (selText does not contain return) then
+				return selText
+			end if
+		end if
 	end if
 
 	-- AXSelectedTextRange location is 0-based; AppleScript text is 1-based.

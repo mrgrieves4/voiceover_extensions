@@ -22,7 +22,13 @@ when the focus is a text control.
 
 `speak_identifier_properly` picks what to speak, in this order:
 
-1. If there's a selection, speaks the selection.
+1. If there's a selection confined to a single line, speaks the selection.
+   A selection spanning multiple lines is ignored (treated as no selection)
+   — VoiceOver leaves a selection behind in a text control as it navigates,
+   to mark what it's reading, and that can span an arbitrary multi-line
+   range unrelated to what the user wants read. A deliberate user selection
+   is normally on one line, so this keeps the selection behaviour useful
+   while ignoring VoiceOver's own navigation artifacts.
 2. If the caret is touching a word (inside it, or immediately before or
    after it), speaks that word.
 3. Otherwise (caret on whitespace/punctuation not touching any word),
@@ -73,3 +79,10 @@ osacompile -o speak_indentation_level.scpt speak_indentation_level.applescript
 - If a script appears to do nothing when triggered, check
   **System Settings → Privacy & Security → Accessibility** for the process
   running the script.
+
+## Troubleshooting log
+
+`speak_identifier_properly` writes one line per run to
+`~/Library/Logs/VoiceOverExtensions.log`, recording which app/control was
+focused, the caret/selection values it read, and what it decided to speak.
+Useful when behaviour looks wrong in a specific app.
