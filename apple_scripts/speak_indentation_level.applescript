@@ -65,10 +65,15 @@ on currentLineText(fullText, caretPos)
 	end repeat
 
 	set endPos to caretPos
-	repeat while endPos < textLen and (character (endPos + 1) of fullText is not linefeed) and (character (endPos + 1) of fullText is not return)
-		set endPos to endPos + 1
-	end repeat
+	if (character endPos of fullText is linefeed) or (character endPos of fullText is return) then
+		set endPos to endPos - 1
+	else
+		repeat while endPos < textLen and (character (endPos + 1) of fullText is not linefeed) and (character (endPos + 1) of fullText is not return)
+			set endPos to endPos + 1
+		end repeat
+	end if
 
+	if startPos > endPos then return ""
 	return text startPos thru endPos of fullText
 end currentLineText
 

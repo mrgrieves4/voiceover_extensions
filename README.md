@@ -5,10 +5,10 @@ assigned in VoiceOver Utility), addressing two everyday annoyances:
 
 1. **`speak_identifier_properly`** — VoiceOver spells long camelCase/PascalCase
    identifiers letter-by-letter instead of reading them as words (e.g.
-   `oneTwoThreeFourFiveSixSevenEight` gets spelled out). This script finds the
-   identifier at the text cursor (or under the VO cursor), inserts spaces at
-   the case boundaries, and has VoiceOver speak the result — e.g.
-   "one Two Three Four Five Six Seven Eight" instead of individual letters.
+   `oneTwoThreeFourFiveSixSevenEight` gets spelled out). This script picks
+   text at the cursor, inserts spaces at the case boundaries, and has
+   VoiceOver speak the result — e.g. "one Two Three Four Five Six Seven
+   Eight" instead of individual letters.
 
 2. **`speak_indentation_level`** — announces the leading whitespace of the
    current line (e.g. "4 spaces", "1 tab", "No indentation"), no matter where
@@ -16,19 +16,25 @@ assigned in VoiceOver Utility), addressing two everyday annoyances:
 
 ## How they find the text
 
-Both scripts try two approaches, in order:
+Both scripts use the Accessibility API (via `System Events`) to read the
+focused control's full text and the actual text-insertion caret position,
+when the focus is a text control.
 
-1. **Real text caret (preferred).** Uses the Accessibility API (via
-   `System Events`) to read the focused control's full text and the actual
-   text-insertion caret position, then extracts just the identifier or line
-   under the caret. This makes both scripts work correctly in a code editor
-   or text field regardless of where the VoiceOver cursor is.
-2. **VoiceOver cursor fallback.** If there's no focused text control (or the
-   Accessibility call fails), falls back to whatever text the VoiceOver
-   cursor (`vo cursor`) is currently on.
+`speak_identifier_properly` picks what to speak, in this order:
 
-Note: some older macOS versions can't read `AXSelectedTextRange` via
-AppleScript at all, in which case only the fallback path is available.
+1. If there's a selection, speaks the selection.
+2. If the caret is touching a word (inside it, or immediately before or
+   after it), speaks that word.
+3. Otherwise (caret on whitespace/punctuation not touching any word),
+   speaks the whole current line.
+
+`speak_indentation_level` always looks at the whole current line, regardless
+of caret position within it.
+
+If the focus isn't a text control at all (or the Accessibility call fails —
+e.g. some older macOS versions can't read `AXSelectedTextRange` via
+AppleScript), both scripts fall back to whatever text the VoiceOver cursor
+(`vo cursor`) is currently on.
 
 ## Files
 
