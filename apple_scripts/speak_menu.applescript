@@ -59,7 +59,7 @@ on run
 
 	try
 		tell application "System Events"
-			set chosen to choose from list labels with title "VoiceOver Extensions" with prompt "Choose an action:"
+			set chosen to choose from list labels with title "" with prompt ""
 		end tell
 		my logDebug("menu | choose from list returned: " & (chosen as text))
 	on error errMsg number errNum
