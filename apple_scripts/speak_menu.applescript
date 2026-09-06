@@ -20,8 +20,8 @@ use scripting additions
 property scriptsFolder : "/Users/johncarpenter/projects/voiceover_extensions/apple_scripts/"
 
 property menuActions : {¬
-	{label:"Speak Identifier Properly", scriptFile:"speak_identifier_properly.scpt"}, ¬
-	{label:"Speak Indentation Level", scriptFile:"speak_indentation_level.scpt"}}
+	{label:"Identifiers", scriptFile:"speak_identifier_properly.scpt"}, ¬
+	{label:"Indentation", scriptFile:"speak_indentation_level.scpt"}}
 
 on run
 	my logDebug("menu | run started")
@@ -43,14 +43,22 @@ on run
 		set end of labels to label of anAction
 	end repeat
 
+	-- Show the picker via System Events rather than directly: a dialog shown
+	-- by the script's own process has no window to render in under
+	-- VoiceOver Commander (it just hangs, taking Commander down with it),
+	-- since whatever runs Commander scripts isn't a normal foreground GUI
+	-- process. System Events is always running as a proper GUI-capable
+	-- process, so routing the dialog through it gives it somewhere to show.
 	try
-		activate me
+		tell application "System Events" to activate
 	on error errMsg
-		my logDebug("menu | activate me FAILED: " & errMsg)
+		my logDebug("menu | activate System Events FAILED: " & errMsg)
 	end try
 
 	try
-		set chosen to choose from list labels with title "VoiceOver Extensions" with prompt "Choose an action:"
+		tell application "System Events"
+			set chosen to choose from list labels with title "VoiceOver Extensions" with prompt "Choose an action:"
+		end tell
 		my logDebug("menu | choose from list returned: " & (chosen as text))
 	on error errMsg number errNum
 		my logDebug("menu | choose from list FAILED (" & errNum & "): " & errMsg)

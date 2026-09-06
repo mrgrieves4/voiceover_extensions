@@ -82,6 +82,14 @@ its `scriptsFolder` property; update that if the repo moves. To add another
 script to the menu, add one `{label:..., scriptFile:...}` record to its
 `menuActions` list.
 
+`speak_menu` shows its picker via `tell application "System Events" to choose
+from list ...` rather than a plain `choose from list`. A dialog shown
+directly by the script's own process has nowhere to render under VoiceOver
+Commander (Commander doesn't run scripts as a normal foreground GUI
+process), and hangs instead of erroring — which then blocks Commander from
+dispatching any further shortcuts until a reboot. Routing the dialog through
+System Events, an always-running GUI-capable process, avoids that.
+
 ## Known limitations
 
 - The camelCase splitter treats letters/digits/underscore as "word"
