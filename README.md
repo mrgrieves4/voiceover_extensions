@@ -14,6 +14,10 @@ assigned in VoiceOver Utility), addressing two everyday annoyances:
    current line (e.g. "4 spaces", "1 tab", "No indentation"), no matter where
    on the line the text cursor actually is.
 
+3. **`speak_menu`** — shows a list of the other scripts and runs whichever
+   one is chosen, so a single shortcut can cover any number of scripts
+   instead of needing a separate shortcut per script.
+
 ## How they find the text
 
 Both scripts use the Accessibility API (via `System Events`) to read the
@@ -48,6 +52,8 @@ AppleScript), both scripts fall back to whatever text the VoiceOver cursor
 - `apple_scripts/speak_identifier_properly.scpt` — compiled (use this one in VoiceOver Utility)
 - `apple_scripts/speak_indentation_level.applescript` — source
 - `apple_scripts/speak_indentation_level.scpt` — compiled (use this one in VoiceOver Utility)
+- `apple_scripts/speak_menu.applescript` — source
+- `apple_scripts/speak_menu.scpt` — compiled (use this one in VoiceOver Utility)
 
 To recompile after editing a `.applescript` source file:
 
@@ -55,6 +61,7 @@ To recompile after editing a `.applescript` source file:
 cd apple_scripts
 osacompile -o speak_identifier_properly.scpt speak_identifier_properly.applescript
 osacompile -o speak_indentation_level.scpt speak_indentation_level.applescript
+osacompile -o speak_menu.scpt speak_menu.applescript
 ```
 
 ## Installing as VoiceOver shortcuts
@@ -65,6 +72,15 @@ osacompile -o speak_indentation_level.scpt speak_indentation_level.applescript
 4. Set **Type** to a keyboard shortcut (e.g. VO-Shift-I for "identifier", VO-Shift-L for "indent level").
 5. Set the command's action to run a script, and browse to the `.scpt` file (`speak_identifier_properly.scpt` / `speak_indentation_level.scpt`).
 6. Save.
+
+Alternatively, assign a single shortcut to `speak_menu.scpt` and pick a
+script from the list each time (arrow keys to move, type a letter to jump
+to an item starting with it, Return to run it, Escape to cancel) — useful
+once there are more scripts than shortcuts you want to remember.
+`speak_menu.applescript` hardcodes the path to the `apple_scripts` folder in
+its `scriptsFolder` property; update that if the repo moves. To add another
+script to the menu, add one `{label:..., scriptFile:...}` record to its
+`menuActions` list.
 
 ## Known limitations
 
