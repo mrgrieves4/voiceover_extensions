@@ -58,12 +58,25 @@ AppleScript), both scripts fall back to whatever text the VoiceOver cursor
 (`vo cursor`) is currently on.
 
 `speak_inner_text` and `speak_table_position` always use the VoiceOver
-cursor directly rather than the text-insertion caret, since they're meant
-for general VO navigation (headings, table cells, etc), not text editing.
-`speak_table_position` reads the `AXRowIndexRange`/`AXColumnIndexRange`
-Accessibility attributes of the focused element; if a particular table
-doesn't expose those, it logs every attribute name available on the element
-instead, to help figure out the right ones for that case.
+cursor directly rather than the text-insertion caret or `System Events`'
+real keyboard focus, since they're meant for general VO navigation
+(headings, table cells, etc): tables/outlines/headings are normally browsed
+with VoiceOver's own virtual cursor without moving real keyboard focus at
+all, so `AXFocusedUIElement` doesn't reliably track what VoiceOver is
+actually looking at.
+
+`speak_table_position` hit-tests the accessibility tree directly at the
+VoiceOver cursor's on-screen position, then walks up from whatever's there
+looking for `AXRowIndexRange`/`AXColumnIndexRange`. That hit-testing and
+attribute extraction is done by a small compiled helper,
+`helpers/ax_table_position` (source: `helpers/ax_table_position.swift`),
+rather than in AppleScript directly - AppleScriptObjC can't reliably pass a
+raw `AXUIElementRef` between two Accessibility API calls, or unpack the
+`CFRange` struct that a row/column range attribute returns, but both are
+straightforward in Swift. The AppleScript just shells out to it and parses
+its output. If it can't find a row/column range after 8 parent hops, it
+logs the chain of roles it walked through and the attribute names available
+on the element it hit, to help pin down the right approach for that case.
 
 ## Files
 
@@ -71,6 +84,10 @@ Each script has a `.applescript` source file and a compiled `.scpt` file
 (use the `.scpt` one in VoiceOver Utility) under `apple_scripts/`:
 `speak_identifier_properly`, `speak_indentation_level`, `speak_inner_text`,
 `speak_table_position`, `speak_menu`.
+
+`helpers/ax_table_position.swift` is the compiled helper `speak_table_position`
+shells out to; the compiled binary (`helpers/ax_table_position`) is checked
+in too.
 
 To recompile after editing a `.applescript` source file:
 
@@ -82,6 +99,21 @@ osacompile -o speak_inner_text.scpt speak_inner_text.applescript
 osacompile -o speak_table_position.scpt speak_table_position.applescript
 osacompile -o speak_menu.scpt speak_menu.applescript
 ```
+
+To rebuild the helper after editing `ax_table_position.swift`:
+
+```bash
+cd helpers
+swiftc ax_table_position.swift -o ax_table_position
+```
+
+If `speak_table_position` never finds anything (always "Could not determine
+table position" with no log entries at all, rather than an "UNRESOLVED"
+entry), the helper binary itself may need to be granted access under
+**System Settings → Privacy & Security → Accessibility** — it calls the
+Accessibility API directly rather than going through `System Events`, so it
+needs its own permission entry, added via the **+** button and browsing to
+`helpers/ax_table_position`.
 
 ## Installing as VoiceOver shortcuts
 
@@ -126,8 +158,10 @@ System Events, an always-running GUI-capable process, avoids that.
 ## Troubleshooting log
 
 All the scripts except `speak_indentation_level` write one line per run to
-`~/Library/Logs/VoiceOverExtensions.log`, recording relevant details (e.g.
+`~/Library/Logs/VoiceOverExtensions.log`, recording relevant details - e.g.
 which app/control was focused, the caret/selection values read, what was
-decided to speak, or - for `speak_table_position` - the full attribute list
-when row/column can't be determined). Useful when behaviour looks wrong in
-a specific app.
+decided to speak; for `speak_table_position`, the VoiceOver cursor's
+on-screen bounds, the point it hit-tested, and the helper's raw output
+(including the chain of roles walked and attribute names available, when it
+couldn't resolve a row/column). Useful when behaviour looks wrong in a
+specific app.
