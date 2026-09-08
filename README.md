@@ -24,7 +24,20 @@ assigned in VoiceOver Utility), addressing everyday annoyances:
    one-off check without turning on VoiceOver's own automatic
    row/column announcement.
 
-5. **`speak_menu`** — shows a list of the other scripts and runs whichever
+5. **`last_spoken_text`** — for when VoiceOver says something too fast/
+   garbled to catch, and neither VO-W (spell word) nor VO-Shift-Left/Right
+   (move by character) work on the control it was reading (e.g. PyCharm's
+   project tree). Grabs the text of the last thing VoiceOver spoke and
+   shows it in an editable field (pre-selected, so Cmd-C copies it
+   immediately) so it can be read with those same shortcuts - which work
+   here regardless of the original control, because the field is a normal,
+   fully-accessible Cocoa text field. Return (or VO-Space on the Close
+   button) dismisses it and hands focus straight back to whatever was
+   active before - Escape doesn't work here (see "How `last_spoken_text`
+   works" below for why). That section also explains why it needs its own
+   direct shortcut instead of going through `speak_menu`.
+
+6. **`speak_menu`** — shows a list of the other scripts and runs whichever
    one is chosen, so a single shortcut can cover any number of scripts
    instead of needing a separate shortcut per script.
 
@@ -78,12 +91,71 @@ its output. If it can't find a row/column range after 8 parent hops, it
 logs the chain of roles it walked through and the attribute names available
 on the element it hit, to help pin down the right approach for that case.
 
+## How `last_spoken_text` works
+
+Rather than reading any control's text at all, `last_spoken_text` asks
+VoiceOver itself for the text of the last phrase it spoke, via the
+`last phrase` object in VoiceOver's own AppleScript dictionary (`tell
+application "VoiceOver" to get content of last phrase`) - the same
+dictionary `speak_inner_text` already uses for `vo cursor`. This is what
+makes it work in places the other scripts can't reach: it doesn't matter
+whether the control exposes `AXValue`, `AXSelectedTextRange`, or anything
+else via the Accessibility API (PyCharm's project tree exposes none of
+these - `speak_identifier_properly` and `speak_inner_text` both fail there),
+because nothing about the control is ever inspected. If VoiceOver spoke it,
+this can retrieve it.
+
+**This script must be bound to its own direct Commander shortcut - never
+added to `speak_menu`.** Picking it from that menu means arrowing through a
+list first, and VoiceOver announcing each menu item as you arrow to it
+overwrites its "last phrase" before `last_spoken_text` ever runs - so it
+would show you the menu item's own text instead of whatever you actually
+wanted captured. Run directly from its own shortcut, it captures `last
+phrase` as the very first thing it does, before anything else has a chance
+to make VoiceOver speak again.
+
+The dialog is routed through `Finder` rather than `System Events` (which is
+what `speak_menu`'s picker uses - see below). `System Events` is a
+background agent app that macOS never actually brings to the real
+foreground: `activate` on it returns without error, but it never becomes
+truly key, so real key presses keep going to whatever app was genuinely
+frontmost before, not to its dialog. VoiceOver's own VO-Space-on-a-button
+still worked through that, because it presses buttons via the
+accessibility API directly rather than a real key/click event. `Finder` is
+a normal foreground-capable app that's always running, so it actually gets
+real keyboard focus - confirmed by Return closing the dialog correctly.
+
+**Escape doesn't dismiss the dialog, even though the button is set as its
+`cancel button`** (which the `display dialog` documentation says should
+bind Escape to it) - Return works, but Escape appears to be consumed by the
+editable text field itself (a known Cocoa quirk: a field editor's own key
+binding for Escape can swallow it before it bubbles up to the panel's
+cancel-button handling) rather than passed up to the dialog. This isn't
+fixable without replacing `display dialog` with a hand-built panel via
+AppleScriptObjC, which is a lot of extra complexity for a "press Escape
+instead of Return" difference - use Return (or VO-Space on Close) instead.
+
+Because it's a dialog owned by `Finder` rather than a window of your actual
+app, dismissing it doesn't return keyboard focus to whatever you were using
+on its own - so the script records the frontmost process before showing
+the dialog and reactivates it afterwards.
+
+**This needs one extra one-time permission**, beyond the Accessibility
+grant the other scripts need: the first time it runs, macOS may prompt to
+let the process running your Commander scripts control `Finder` - allow
+it. If it instead just silently fails with no visible text box (check
+`~/Library/Logs/VoiceOverExtensions.log` for `display dialog FAILED
+(-1743)`), that permission was denied or never prompted; grant it manually
+under **System Settings → Privacy & Security → Automation**, by finding
+the entry for whatever process runs your Commander scripts and enabling
+its `Finder` checkbox.
+
 ## Files
 
 Each script has a `.applescript` source file and a compiled `.scpt` file
 (use the `.scpt` one in VoiceOver Utility) under `apple_scripts/`:
 `speak_identifier_properly`, `speak_indentation_level`, `speak_inner_text`,
-`speak_table_position`, `speak_menu`.
+`speak_table_position`, `last_spoken_text`, `speak_menu`.
 
 `helpers/ax_table_position.swift` is the compiled helper `speak_table_position`
 shells out to; the compiled binary (`helpers/ax_table_position`) is checked
@@ -97,6 +169,7 @@ osacompile -o speak_identifier_properly.scpt speak_identifier_properly.applescri
 osacompile -o speak_indentation_level.scpt speak_indentation_level.applescript
 osacompile -o speak_inner_text.scpt speak_inner_text.applescript
 osacompile -o speak_table_position.scpt speak_table_position.applescript
+osacompile -o last_spoken_text.scpt last_spoken_text.applescript
 osacompile -o speak_menu.scpt speak_menu.applescript
 ```
 
@@ -151,6 +224,9 @@ System Events, an always-running GUI-capable process, avoids that.
   expose `AXValue`/`AXSelectedTextRange`), both scripts fall back to the
   VoiceOver-cursor text, which may be a whole item rather than a single word
   or line.
+- `last_spoken_text` needs a one-time Automation permission grant to
+  control `Finder` (see "How `last_spoken_text` works" above); until
+  that's granted, it fails silently instead of showing its text box.
 - If a script appears to do nothing when triggered, check
   **System Settings → Privacy & Security → Accessibility** for the process
   running the script.
