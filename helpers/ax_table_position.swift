@@ -12,6 +12,15 @@
 // supported cleanly. Swift has proper access to both, so this small tool
 // does the actual work and the AppleScript just shells out to it.
 //
+// Apps with custom-drawn tables (Numbers, and likely Pages/Keynote) hit-test
+// to an AXHandle - a resize-handle overlay drawn on top of the selected
+// cell - whose ancestors go AXHandle -> AXTable -> ... , skipping right
+// past the actual AXRow/AXCell elements (children of AXTable, not
+// ancestors of the handle). When the ancestor walk comes up empty but
+// passes through an AXTable, this falls back to searching that table's
+// AXVisibleCells for the cell whose AXFrame contains the hit point, then
+// (if that also fails) to the table's AXSelectedCells.
+//
 // Usage: ax_table_position <x> <y>
 // Prints one of:
 //   OK <row> <col>          - 0-based row/column indices found
@@ -56,6 +65,35 @@ func roleOf(_ element: AXUIElement) -> String {
 	return (getAttribute(element, kAXRoleAttribute as String) as? String) ?? "?"
 }
 
+func frameOf(_ element: AXUIElement) -> CGRect? {
+	guard let value = getAttribute(element, "AXFrame") else { return nil }
+	let axValue = value as! AXValue
+	var rect = CGRect.zero
+	if AXValueGetValue(axValue, .cgRect, &rect) {
+		return rect
+	}
+	return nil
+}
+
+// Finds the cell at (x, y) among a table's AXVisibleCells, then falls back
+// to its AXSelectedCells if there's exactly one (e.g. when the point landed
+// exactly on an overlay handle whose own frame doesn't line up with any
+// cell's frame).
+func findCell(inTable table: AXUIElement, atX x: Double, y: Double) -> AXUIElement? {
+	let point = CGPoint(x: x, y: y)
+	if let cells = getAttribute(table, "AXVisibleCells") as? [AXUIElement] {
+		for cell in cells {
+			if let frame = frameOf(cell), frame.contains(point) {
+				return cell
+			}
+		}
+	}
+	if let selected = getAttribute(table, "AXSelectedCells") as? [AXUIElement], selected.count == 1 {
+		return selected[0]
+	}
+	return nil
+}
+
 let args = CommandLine.arguments
 guard args.count >= 3, let x = Double(args[1]), let y = Double(args[2]) else {
 	print("ERROR usage: ax_table_position <x> <y>")
@@ -73,12 +111,17 @@ guard hitErr == .success, let startElement = hitElement else {
 
 var rowIndex: Int?
 var colIndex: Int?
+var tableElement: AXUIElement?
 var current: AXUIElement? = startElement
 var hops = 0
 var roleTrail: [String] = []
 
 while let element = current, hops < 8 {
-	roleTrail.append(roleOf(element))
+	let role = roleOf(element)
+	roleTrail.append(role)
+	if role == "AXTable" {
+		tableElement = element
+	}
 
 	if rowIndex == nil {
 		rowIndex = getRangeStart(element, "AXRowIndexRange")
@@ -92,6 +135,12 @@ while let element = current, hops < 8 {
 
 	current = getParent(element)
 	hops += 1
+}
+
+if (rowIndex == nil || colIndex == nil), let table = tableElement,
+   let cell = findCell(inTable: table, atX: x, y: y) {
+	rowIndex = rowIndex ?? getRangeStart(cell, "AXRowIndexRange")
+	colIndex = colIndex ?? getRangeStart(cell, "AXColumnIndexRange")
 }
 
 if let r = rowIndex, let c = colIndex {
