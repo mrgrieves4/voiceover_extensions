@@ -21,9 +21,13 @@
 
 use scripting additions
 
-property helperPath : "/Users/johncarpenter/projects/voiceover_extensions/helpers/ax_table_position"
+-- Resolved at run time from this script's own location (see scriptFolder()
+-- below), rather than hardcoded, so the repo can live anywhere. The helper
+-- lives in ../helpers/ relative to this script's folder (apple_scripts/).
+property helperPath : missing value
 
 on run
+	set helperPath to (my scriptFolder()) & "../helpers/ax_table_position"
 	set resultText to "Could not determine table position"
 
 	try
@@ -56,6 +60,14 @@ on run
 
 	tell application "VoiceOver" to output resultText
 end run
+
+-- Returns the POSIX path (with trailing slash) of the folder containing
+-- this running script, so helperPath tracks wherever the repo was cloned
+-- to instead of a hardcoded path.
+on scriptFolder()
+	set scriptPosixPath to POSIX path of (path to me)
+	return (do shell script "dirname " & quoted form of scriptPosixPath) & "/"
+end scriptFolder
 
 -- Appends a line to ~/Library/Logs/VoiceOverExtensions.log for troubleshooting.
 -- Never lets a logging failure interrupt the main behaviour.

@@ -201,9 +201,12 @@ Alternatively, assign a single shortcut to `speak_menu.scpt` and pick a
 script from the list each time (arrow keys to move, type a letter to jump
 to an item starting with it, Return to run it, Escape to cancel) — useful
 once there are more scripts than shortcuts you want to remember.
-`speak_menu.applescript` hardcodes the path to the `apple_scripts` folder in
-its `scriptsFolder` property; update that if the repo moves. To add another
-script to the menu, add one `{label:..., scriptFile:...}` record to its
+`speak_menu.applescript` and `speak_table_position.applescript` locate
+their sibling files (the other scripts, and the `ax_table_position`
+helper, respectively) relative to their own path at run time — via `path
+to me` — rather than a hardcoded path, so the repo works from wherever
+it's cloned with no editing needed. To add another script to the menu, add
+one `{label:..., scriptFile:...}` record to `speak_menu.applescript`'s
 `menuActions` list.
 
 `speak_menu` shows its picker via `tell application "System Events" to choose

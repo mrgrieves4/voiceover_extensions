@@ -17,7 +17,9 @@
 
 use scripting additions
 
-property scriptsFolder : "/Users/johncarpenter/projects/voiceover_extensions/apple_scripts/"
+-- Resolved at run time from this script's own location (see scriptFolder()
+-- below), rather than hardcoded, so the repo can live anywhere.
+property scriptsFolder : missing value
 
 property menuActions : {¬
 	{label:"Identifiers", scriptFile:"speak_identifier_properly.scpt"}, ¬
@@ -26,6 +28,7 @@ property menuActions : {¬
 	{label:"Table Position", scriptFile:"speak_table_position.scpt"}}
 
 on run
+	set scriptsFolder to my scriptFolder()
 	my logDebug("menu | run started")
 
 	-- Remember what was focused before the picker steals focus, so the
@@ -99,6 +102,14 @@ on run
 
 	my logDebug("menu | no matching action for label: " & chosenLabel)
 end run
+
+-- Returns the POSIX path (with trailing slash) of the folder containing
+-- this running script, so scriptsFolder tracks wherever the repo was
+-- cloned to instead of a hardcoded path.
+on scriptFolder()
+	set scriptPosixPath to POSIX path of (path to me)
+	return (do shell script "dirname " & quoted form of scriptPosixPath) & "/"
+end scriptFolder
 
 -- Appends a line to ~/Library/Logs/VoiceOverExtensions.log for troubleshooting.
 -- Never lets a logging failure interrupt the main behaviour.
