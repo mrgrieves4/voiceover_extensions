@@ -18,6 +18,18 @@
 -- Cocoa quirk with editable-field dialogs that isn't fixable without a much
 -- heavier custom panel, so Return is the keyboard way to close this.
 --
+-- Also auto-closes itself after 30s if never dismissed (e.g. you cmd-tabbed
+-- away instead of pressing Return/Close). Without this, the dialog just sits
+-- there holding open the Apple Event this script is waiting on; Commander
+-- appears to serialize on that one blocked script, so every command you
+-- trigger after that - this one or any other - silently queues up until the
+-- open event finally times out on its own (around a minute or two), at
+-- which point they all fire at once. Giving the dialog its own short,
+-- explicit timeout means it gives up long before that. It's also now
+-- findable while it's still open: shown via System Events (like speak_menu),
+-- it shows up as "Last Spoken Text" in VoiceOver's application chooser if
+-- you lose track of it, instead of being invisible until it times out.
+--
 -- IMPORTANT: assign this to its own direct Commander shortcut. Do not run it
 -- through speak_menu - picking it from that list means arrowing through the
 -- menu first, and VoiceOver announcing each menu item overwrites its "last
@@ -62,32 +74,41 @@ on run
 		my logDebug("lastspoken | previousAppName lookup FAILED: " & errMsg2)
 	end try
 
-	-- Show it via Finder rather than System Events: a dialog shown by this
+	-- Show it via System Events rather than directly: a dialog shown by this
 	-- script's own process has nowhere to render under VoiceOver Commander
-	-- and just hangs instead of erroring, but System Events is a background
-	-- agent app that macOS won't actually bring to the real foreground -
-	-- "activate" on it returns without error but "frontmost" stays false,
-	-- so real key presses keep going to whatever was genuinely frontmost
-	-- before, not to its dialog. Only VoiceOver's own accessibility-action
-	-- clicks (e.g. VO-Space on a button) still worked through that, since
-	-- those bypass real keyboard/window focus entirely. Finder is a normal
-	-- foreground-capable app that's always running, so it actually gets
-	-- real key presses - confirmed working for Return; Escape specifically
-	-- still doesn't reach the cancel button (see the note above run).
+	-- and just hangs instead of erroring, since whatever runs Commander
+	-- scripts isn't a normal foreground GUI process. System Events is always
+	-- running as a proper GUI-capable process, so routing the dialog through
+	-- it gives it somewhere to show (matching speak_menu's picker) - and,
+	-- unlike a Finder-hosted dialog, it actually shows up in VoiceOver's
+	-- application chooser if you lose track of it. An earlier version of
+	-- this script used Finder instead, on the theory that System Events
+	-- wouldn't reliably receive Return since "activate" on it returns
+	-- without error but "frontmost" stays false; retesting found Return
+	-- does reach it fine either way - it was Escape that never worked
+	-- (see the note above run), and that's a Cocoa text-field quirk
+	-- unrelated to which app hosts the dialog.
 	try
-		tell application "Finder" to activate
+		tell application "System Events" to activate
 	on error errMsg3
-		my logDebug("lastspoken | activate Finder FAILED: " & errMsg3)
+		my logDebug("lastspoken | activate System Events FAILED: " & errMsg3)
 	end try
 
 	-- The button is both the default and the cancel button, so both Return
 	-- and a click/VO-Space on it raise the same "user cancelled" (-128)
 	-- error - there's no button-press case that returns normally here.
+	-- "giving up after" covers the third case: nobody touches the dialog at
+	-- all (e.g. cmd-tabbed away) - it self-dismisses and returns normally
+	-- instead of hanging, with "gave up" true in the result record.
 	try
-		tell application "Finder"
-			display dialog "VoiceOver last said:" with title "Last Spoken Text" default answer theText buttons {"Close"} default button "Close" cancel button "Close"
+		tell application "System Events"
+			set dialogResult to (display dialog "VoiceOver last said:" with title "Last Spoken Text" default answer theText buttons {"Close"} default button "Close" cancel button "Close" giving up after 30)
 		end tell
-		my logDebug("lastspoken | dialog returned without an error (unexpected)")
+		if gave up of dialogResult then
+			my logDebug("lastspoken | dialog timed out after 30s without being dismissed (probably lost focus) - giving up so it doesn't block later commands")
+		else
+			my logDebug("lastspoken | dialog returned without an error (unexpected)")
+		end if
 	on error errMsg4 number errNum
 		if errNum is -128 then
 			my logDebug("lastspoken | dialog dismissed")
