@@ -9,6 +9,18 @@
 -- the next item starting with that letter), then press Return to run it,
 -- or Escape to cancel.
 --
+-- Also gives up on the picker after 20s if it's never interacted with (e.g.
+-- you cmd-tabbed away instead of picking something or pressing Escape).
+-- Without this, the still-open picker holds open the Apple Event this
+-- script is waiting on; Commander appears to serialize on that one blocked
+-- script, so every command you trigger after that - this one or any other -
+-- silently queues up until the open event finally times out on its own
+-- (around a minute or two), at which point they all fire at once. Giving
+-- the wait its own short, explicit timeout means it gives up long before
+-- that. The picker window itself may still be left sitting on screen in
+-- that case (choose from list has no built-in "giving up after" of its
+-- own), but it no longer blocks anything else.
+--
 -- To add another script to the menu, add one record to menuActions below.
 --
 -- Install: assign this script's .scpt to a VoiceOver Commander shortcut.
@@ -61,12 +73,18 @@ on run
 	end try
 
 	try
-		tell application "System Events"
-			set chosen to choose from list labels with title "" with prompt ""
-		end tell
+		with timeout of 20 seconds
+			tell application "System Events"
+				set chosen to choose from list labels with title "VoiceOver Extensions Menu" with prompt ""
+			end tell
+		end timeout
 		my logDebug("menu | choose from list returned: " & (chosen as text))
 	on error errMsg number errNum
-		my logDebug("menu | choose from list FAILED (" & errNum & "): " & errMsg)
+		if errNum is -1712 then
+			my logDebug("menu | choose from list timed out after 20s (probably lost focus) - giving up so it doesn't block later commands")
+		else
+			my logDebug("menu | choose from list FAILED (" & errNum & "): " & errMsg)
+		end if
 		return
 	end try
 
