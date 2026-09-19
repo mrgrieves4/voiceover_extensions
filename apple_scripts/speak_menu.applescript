@@ -37,7 +37,8 @@ property menuActions : {¬
 	{label:"Identifiers", scriptFile:"speak_identifier_properly.scpt"}, ¬
 	{label:"Indentation", scriptFile:"speak_indentation_level.scpt"}, ¬
 	{label:"Inner Text", scriptFile:"speak_inner_text.scpt"}, ¬
-	{label:"Table Position", scriptFile:"speak_table_position.scpt"}}
+	{label:"Table Position", scriptFile:"speak_table_position.scpt"}, ¬
+	{label:"Restart VoiceOver", scriptFile:"restart_voiceover.scpt"}}
 
 on run
 	set scriptsFolder to my scriptFolder()

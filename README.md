@@ -31,6 +31,9 @@ Note: pressing enter on this dialog will close it.
    instead of needing a separate shortcut per script. Useful if you have scripts you only use occasionally.
    Note: the last spoken text script is not listed here as it doesn't really make sense.
 
+7. **`restart_voiceover`** — restarts VoiceOver in one go, for the times it
+   gets into an odd state and needs turning off and on again.
+
 
 
 ## Compiling
@@ -45,6 +48,7 @@ osacompile -o speak_inner_text.scpt speak_inner_text.applescript
 osacompile -o speak_table_position.scpt speak_table_position.applescript
 osacompile -o last_spoken_text.scpt last_spoken_text.applescript
 osacompile -o speak_menu.scpt speak_menu.applescript
+osacompile -o restart_voiceover.scpt restart_voiceover.applescript
 ```
 
 To rebuild the helper after editing `ax_table_position.swift`:
@@ -93,3 +97,15 @@ on-screen bounds, the point it hit-tested, and the helper's raw output
 (including the chain of roles walked and attribute names available, when it
 couldn't resolve a row/column). Useful when behaviour looks wrong in a
 specific app.
+
+
+# Known Issues
+
+If you use one of the scripts that shows a ui (the menu or show last spoken text) and then switch away from that window without closing it,
+then you can block other Apple scripts from running with VoiceOver for a time. (This is why the dialogs close after 30 seconds).
+
+If you run into this, you can use VM+F1, F1 to find the dialog, and then close it properly.
+
+Sometimes VO won't properly speak the last spoken text. You can use VO+F6 to speak the selection if it doesn't, or do the VO+right, VO+left shuffle to try it again.
+
+The compiled Swift code only works for Apple Silicon - Intel Mac users will have to recompile.
