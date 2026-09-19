@@ -25,8 +25,14 @@
 
 use scripting additions
 
+-- Set to true to log restart progress to ~/Library/Logs/VoiceOverExtensions.log.
+-- Off by default so nothing accumulates on disk. Recompile (see the Makefile)
+-- after changing this.
+property debugLogging : false
+
 on run
 	set logPath to (POSIX path of (path to library folder from user domain)) & "Logs/VoiceOverExtensions.log"
+	if not debugLogging then set logPath to "/dev/null"
 
 	set restartScript to "
 log() { printf '%s | restart | %s\\n' \"$(date '+%Y-%m-%d %H:%M:%S')\" \"$1\" >> " & quoted form of logPath & "; }

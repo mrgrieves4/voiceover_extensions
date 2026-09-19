@@ -14,6 +14,11 @@
 
 use scripting additions
 
+-- Set to true to write troubleshooting lines to ~/Library/Logs/VoiceOverExtensions.log.
+-- Off by default so nothing accumulates on disk (the log can contain text you had
+-- selected or focused). Recompile (see the Makefile) after changing this.
+property debugLogging : false
+
 on run
 	set theText to ""
 	try
@@ -36,6 +41,7 @@ end run
 -- Appends a line to ~/Library/Logs/VoiceOverExtensions.log for troubleshooting.
 -- Never lets a logging failure interrupt the main behaviour.
 on logDebug(msg)
+	if not debugLogging then return
 	try
 		set ts to (do shell script "date '+%Y-%m-%d %H:%M:%S'")
 		set logPath to (POSIX path of (path to library folder from user domain)) & "Logs/VoiceOverExtensions.log"

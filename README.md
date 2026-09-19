@@ -41,21 +41,15 @@ Note: pressing enter on this dialog will close it.
 To recompile after editing a `.applescript` source file:
 
 ```bash
-cd apple_scripts
-osacompile -o speak_identifier_properly.scpt speak_identifier_properly.applescript
-osacompile -o speak_indentation_level.scpt speak_indentation_level.applescript
-osacompile -o speak_inner_text.scpt speak_inner_text.applescript
-osacompile -o speak_table_position.scpt speak_table_position.applescript
-osacompile -o last_spoken_text.scpt last_spoken_text.applescript
-osacompile -o speak_menu.scpt speak_menu.applescript
-osacompile -o restart_voiceover.scpt restart_voiceover.applescript
+make
 ```
+
+This only rebuilds the scripts whose source has changed.
 
 To rebuild the helper after editing `ax_table_position.swift`:
 
 ```bash
-cd helpers
-swiftc ax_table_position.swift -o ax_table_position
+make helper
 ```
 
 If `speak_table_position` never finds anything (always "Could not determine
@@ -80,7 +74,8 @@ Also there is a setting in VO Utility under General "Allow VoiceOver to be contr
 The last spoken text script needs an extra one-time permission**, beyond the Accessibility
 grant the other scripts need: the first time it runs, macOS may prompt to
 let the process running your Commander scripts control `Finder` - allow
-it. If it instead just silently fails with no visible text box (check
+it. If it instead just silently fails with no visible text box (turn on
+`debugLogging` as described under Troubleshooting log below, and check
 `~/Library/Logs/VoiceOverExtensions.log` for `display dialog FAILED
 (-1743)`), that permission was denied or never prompted; grant it manually
 under **System Settings → Privacy & Security → Automation**, by finding
@@ -89,14 +84,19 @@ its `Finder` checkbox.
 
 ## Troubleshooting log
 
-All the scripts except `speak_indentation_level` write one line per run to
-`~/Library/Logs/VoiceOverExtensions.log`, recording relevant details - e.g.
-which app/control was focused, the caret/selection values read, what was
-decided to speak; for `speak_table_position`, the VoiceOver cursor's
-on-screen bounds, the point it hit-tested, and the helper's raw output
-(including the chain of roles walked and attribute names available, when it
-couldn't resolve a row/column). Useful when behaviour looks wrong in a
-specific app.
+Logging is off by default so nothing builds up on disk (the log can contain
+text you had selected or focused, and nothing ever trims it). To turn it on,
+set `property debugLogging : false` to `true` near the top of the script you
+want to investigate, then run `make` to recompile it.
+
+With it on, all the scripts except `speak_indentation_level` write one line
+per event to `~/Library/Logs/VoiceOverExtensions.log`, recording relevant
+details - e.g. which app/control was focused, the caret/selection values
+read, what was decided to speak; for `speak_table_position`, the VoiceOver
+cursor's on-screen bounds, the point it hit-tested, and the helper's raw
+output (including the chain of roles walked and attribute names available,
+when it couldn't resolve a row/column). Useful when behaviour looks wrong in
+a specific app. Set it back to `false` (and delete the log file) when done.
 
 
 # Known Issues
