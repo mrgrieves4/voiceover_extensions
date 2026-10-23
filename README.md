@@ -21,17 +21,28 @@ These can be assigned using VoiceOver Utility COmmands section.
    one-off check without turning on VoiceOver's own automatic
    row/column announcement.
 
-5. **`last_spoken_text`** — this pops up the last spoken text into a text box.
+5. **`speak_row_header`** — speaks the header of the row the VoiceOver
+   cursor is in. If the row has no proper header, it speaks the first cell
+   in the row instead, or the second cell if the first has no text (e.g. a
+   tickbox). Handy in wide tables where VoiceOver doesn't announce what
+   row you're on.
+
+6. **`speak_column_header`** — speaks the header of the column the
+   VoiceOver cursor is in, including the non-interactive header row many
+   Mac app tables have. If there's no header, it speaks the top cell in the
+   column instead.
+
+7. **`last_spoken_text`** — this pops up the last spoken text into a text box.
 This is handy for the times VO struggles to pronounce something properly and saves having to copy/paste the text elsewhere.
 Note: pressing enter on this dialog will close it.
 
 
-6. **`speak_menu`** — shows a list of the other scripts and runs whichever
+8. **`speak_menu`** — shows a list of the other scripts and runs whichever
    one is chosen, so a single shortcut can cover any number of scripts
    instead of needing a separate shortcut per script. Useful if you have scripts you only use occasionally.
    Note: the last spoken text script is not listed here as it doesn't really make sense.
 
-7. **`restart_voiceover`** — restarts VoiceOver in one go, for the times it
+9. **`restart_voiceover`** — restarts VoiceOver in one go, for the times it
    gets into an odd state and needs turning off and on again.
 
 
@@ -52,9 +63,10 @@ To rebuild the helper after editing `ax_table_position.swift`:
 make helper
 ```
 
-If `speak_table_position` never finds anything (always "Could not determine
-table position" with no log entries at all, rather than an "UNRESOLVED"
-entry), the helper binary itself may need to be granted access under
+The helper is shared by `speak_table_position`, `speak_row_header` and
+`speak_column_header`. If they never find anything (always
+"Could not determine table position" / "Could not find a row/column header" with
+no log entries at all, rather than an "UNRESOLVED" entry), the helper binary itself may need to be granted access under
 **System Settings → Privacy & Security → Accessibility** — it calls the
 Accessibility API directly rather than going through `System Events`, so it
 needs its own permission entry, added via the **+** button and browsing to

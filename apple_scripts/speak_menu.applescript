@@ -43,6 +43,8 @@ property menuActions : {¬
 	{label:"Indentation", scriptFile:"speak_indentation_level.scpt"}, ¬
 	{label:"Inner Text", scriptFile:"speak_inner_text.scpt"}, ¬
 	{label:"Table Position", scriptFile:"speak_table_position.scpt"}, ¬
+	{label:"Row Header", scriptFile:"speak_row_header.scpt"}, ¬
+	{label:"Column Header", scriptFile:"speak_column_header.scpt"}, ¬
 	{label:"Restart VoiceOver", scriptFile:"restart_voiceover.scpt"}}
 
 on run

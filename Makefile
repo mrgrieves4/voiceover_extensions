@@ -10,7 +10,7 @@ scripts: $(SCRIPTS)
 apple_scripts/%.scpt: apple_scripts/%.applescript
 	osacompile -o $@ $<
 
-# Rebuild the Swift helper used by speak_table_position (needs swiftc).
+# Rebuild the Swift helper used by the table scripts (needs swiftc).
 helper: helpers/ax_table_position
 
 helpers/ax_table_position: helpers/ax_table_position.swift
