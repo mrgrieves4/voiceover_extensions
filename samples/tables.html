@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Table Header Samples</title>
+<style>
+	body { font-family: -apple-system, system-ui, sans-serif; margin: 2em; max-width: 60em; }
+	table { border-collapse: collapse; margin: 0.5em 0 2em; }
+	th, td { border: 1px solid #888; padding: 0.3em 0.8em; text-align: left; }
+	th { background: #eee; }
+	p.expect { color: #444; }
+</style>
+</head>
+<body>
+
+<h1>Table header samples</h1>
+
+<p>Each table below has the same data: regions down the left and quarters
+across the top. What changes is whether the top row and left column are
+marked up as headers (<code>th</code>) or as plain data cells
+(<code>td</code>), and whether the left column has any text. Use the
+heading rotor to jump between cases. Under each heading, "Expect" says what
+the row header and column header scripts should speak when the cursor is
+in the "Q2" column of the "North" row (or the equivalent cell).</p>
+
+<h2>1. Top row and left column are both headers</h2>
+<p class="expect">Expect: row header "North", column header "Q2". VoiceOver
+should already announce both itself.</p>
+<table>
+	<caption>Both headers</caption>
+	<thead>
+		<tr><th scope="col">Region</th><th scope="col">Q1</th><th scope="col">Q2</th><th scope="col">Q3</th><th scope="col">Q4</th></tr>
+	</thead>
+	<tbody>
+		<tr><th scope="row">North</th><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><th scope="row">South</th><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><th scope="row">East</th><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><th scope="row">West</th><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>2. Top row is a header, left column is data</h2>
+<p class="expect">Expect: row header "North" (from the first cell), column
+header "Q2".</p>
+<table>
+	<caption>Column headers only</caption>
+	<thead>
+		<tr><th scope="col">Region</th><th scope="col">Q1</th><th scope="col">Q2</th><th scope="col">Q3</th><th scope="col">Q4</th></tr>
+	</thead>
+	<tbody>
+		<tr><td>North</td><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><td>South</td><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><td>East</td><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><td>West</td><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>3. Left column is a header, top row is data</h2>
+<p class="expect">Expect: row header "North", column header "Q2" (from the
+top cell).</p>
+<table>
+	<caption>Row headers only</caption>
+	<tbody>
+		<tr><td>Region</td><td>Q1</td><td>Q2</td><td>Q3</td><td>Q4</td></tr>
+		<tr><th scope="row">North</th><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><th scope="row">South</th><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><th scope="row">East</th><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><th scope="row">West</th><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>4. No headers at all</h2>
+<p class="expect">Expect: row header "North" (from the first cell), column
+header "Q2" (from the top cell). VoiceOver announces neither itself.</p>
+<table>
+	<caption>No headers</caption>
+	<tbody>
+		<tr><td>Region</td><td>Q1</td><td>Q2</td><td>Q3</td><td>Q4</td></tr>
+		<tr><td>North</td><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><td>South</td><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><td>East</td><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><td>West</td><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>5. No headers, empty first column</h2>
+<p class="expect">Expect: row header "North" (from the second cell, since
+the first is empty), column header "Q2" (from the top cell).</p>
+<table>
+	<caption>No headers, empty first column</caption>
+	<tbody>
+		<tr><td></td><td>Region</td><td>Q1</td><td>Q2</td><td>Q3</td><td>Q4</td></tr>
+		<tr><td></td><td>North</td><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><td></td><td>South</td><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><td></td><td>East</td><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><td></td><td>West</td><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>6. Column headers, tickbox first column</h2>
+<p class="expect">Expect: row header "North" (the tickbox is skipped),
+column header "Q2".</p>
+<table>
+	<caption>Column headers, tickbox first column</caption>
+	<thead>
+		<tr><th scope="col">Selected</th><th scope="col">Region</th><th scope="col">Q1</th><th scope="col">Q2</th><th scope="col">Q3</th><th scope="col">Q4</th></tr>
+	</thead>
+	<tbody>
+		<tr><td><input type="checkbox" checked aria-label="Select North"></td><td>North</td><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><td><input type="checkbox" aria-label="Select South"></td><td>South</td><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><td><input type="checkbox" checked aria-label="Select East"></td><td>East</td><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><td><input type="checkbox" aria-label="Select West"></td><td>West</td><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>7. Column headers, empty first column</h2>
+<p class="expect">Expect: row header "North" (from the second cell), column
+header "Q2". The first column's header is empty too.</p>
+<table>
+	<caption>Column headers, empty first column</caption>
+	<thead>
+		<tr><th scope="col"></th><th scope="col">Region</th><th scope="col">Q1</th><th scope="col">Q2</th><th scope="col">Q3</th><th scope="col">Q4</th></tr>
+	</thead>
+	<tbody>
+		<tr><td></td><td>North</td><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><td></td><td>South</td><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><td></td><td>East</td><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><td></td><td>West</td><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+<h2>8. Both headers, empty corner cell</h2>
+<p class="expect">Expect: row header "North", column header "Q2". Checks
+that the empty top-left cell doesn't confuse either script.</p>
+<table>
+	<caption>Both headers, empty corner</caption>
+	<thead>
+		<tr><td></td><th scope="col">Q1</th><th scope="col">Q2</th><th scope="col">Q3</th><th scope="col">Q4</th></tr>
+	</thead>
+	<tbody>
+		<tr><th scope="row">North</th><td>120</td><td>135</td><td>150</td><td>160</td></tr>
+		<tr><th scope="row">South</th><td>90</td><td>95</td><td>110</td><td>105</td></tr>
+		<tr><th scope="row">East</th><td>200</td><td>210</td><td>190</td><td>220</td></tr>
+		<tr><th scope="row">West</th><td>75</td><td>80</td><td>85</td><td>95</td></tr>
+	</tbody>
+</table>
+
+</body>
+</html>
