@@ -1,4 +1,5 @@
-# VoiceOver Extensions
+last
+## VoiceOver Extensions
 
 Apple Scripts to help overcome some of VoiceOver's little annoyances.
 These can be assigned using VoiceOver Utility COmmands section.
@@ -14,7 +15,7 @@ These can be assigned using VoiceOver Utility COmmands section.
 3. **`speak_inner_text`** — works around a VoiceOver bug where a heading (or
    other element) containing a child element gets announced as its child
    count (e.g. "2 items") instead of its actual text. Speaks the combined
-   text of whatever the VoiceOver cursor is currently on instead. Can be used in conjunction with th normal navigate to heading.
+   text of whatever the VoiceOver cursor is currently on instead. Can be used in conjunction with the normal navigate to heading.
 
 4. **`speak_table_position`** — announces the row and column of the table
    cell currently in VoiceOver focus (e.g. "Row 3, Column 4"), for a
@@ -31,11 +32,12 @@ These can be assigned using VoiceOver Utility COmmands section.
    VoiceOver cursor is in, including the non-interactive header row many
    Mac app tables have. If there's no header, it speaks the top cell in the
    column instead.
+   
+   This is useful if a table has not been marked up properly or you don't wish to turn on the constant announcement as you move around.
 
-7. **`last_spoken_text`** — this pops up the last spoken text into a text box.
-This is handy for the times VO struggles to pronounce something properly and saves having to copy/paste the text elsewhere.
-The text is read-only and starts selected, so Cmd-C copies it straight away. Return or Escape closes it.
-
+7. **`last_spoken_text_window_text`** — this pops up the last spoken text into a text box.
+This is handy if you just can't figure out what VoiceOver is saying and VO+W or interacting with the text letter by letter isn't an option.
+Saves having to copy/paste the text elsewhere.
 
 8. **`speak_menu`** — shows a list of the other scripts and runs whichever
    one is chosen, so a single shortcut can cover any number of scripts
@@ -43,8 +45,7 @@ The text is read-only and starts selected, so Cmd-C copies it straight away. Ret
    Note: the last spoken text script is not listed here as it doesn't really make sense.
 
 9. **`restart_voiceover`** — restarts VoiceOver in one go, for the times it
-   gets into an odd state and needs turning off and on again.
-
+   gets into an odd state and needs turning off and on again. Marginally quicker than Cmd+F5 twice.
 
 
 ## Compiling
