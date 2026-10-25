@@ -6,29 +6,20 @@
 -- regardless of the control, because it doesn't inspect the control at all -
 -- it asks VoiceOver directly for the last thing it spoke.
 --
--- Captures that text and shows it in an editable field (pre-selected, so
+-- Captures that text and shows it in a read-only text area (pre-selected, so
 -- Cmd-C copies it immediately) so it can be read with the usual
--- text-navigation shortcuts (VO-W to spell a word, VO-Shift-Left/Right to
--- move by character) - all of which work here because the field is a
--- normal, fully-accessible Cocoa text field, unlike whatever control
--- VoiceOver was originally reading. Press Return, or VO-Space the Close
--- button, to dismiss it; either way focus returns to whatever app/control
--- was active before the dialog appeared. Escape does NOT dismiss it - the
--- text field swallows it rather than passing it up to the button, a known
--- Cocoa quirk with editable-field dialogs that isn't fixable without a much
--- heavier custom panel, so Return is the keyboard way to close this.
+-- text-navigation shortcuts (VO-W to spell a word, arrow keys to move by
+-- character) - all of which work here because it's a normal, fully-accessible
+-- Cocoa text view, unlike whatever control VoiceOver was originally reading.
+-- Press Return or Escape, or VO-Space the Close button, to dismiss it; focus
+-- then returns to whatever app was active before.
 --
--- Also auto-closes itself after 30s if never dismissed (e.g. you cmd-tabbed
--- away instead of pressing Return/Close). Without this, the dialog just sits
--- there holding open the Apple Event this script is waiting on; Commander
--- appears to serialize on that one blocked script, so every command you
--- trigger after that - this one or any other - silently queues up until the
--- open event finally times out on its own (around a minute or two), at
--- which point they all fire at once. Giving the dialog its own short,
--- explicit timeout means it gives up long before that. It's also now
--- findable while it's still open: shown via System Events (like speak_menu),
--- it shows up as "Last Spoken Text" in VoiceOver's application chooser if
--- you lose track of it, instead of being invisible until it times out.
+-- The window is a small app of its own, helpers/LastSpokenText.app (see
+-- helpers/last_spoken_text_window.swift for why it isn't a display dialog
+-- any more). This script just launches it with the text and finishes, so
+-- leaving the window open doesn't hold up other Commander commands. It shows
+-- up as "Last Spoken Text" in VoiceOver's application chooser if you lose
+-- track of it, and running this again replaces any window still open.
 --
 -- IMPORTANT: assign this to its own direct Commander shortcut. Do not run it
 -- through speak_menu - picking it from that list means arrowing through the
@@ -64,73 +55,28 @@ on run
 		return
 	end if
 
-	-- Remember what was focused before the dialog steals it, so it can be
-	-- restored afterwards - dismissing this dialog doesn't hand focus back
-	-- to whatever app/control you were using on its own, and VoiceOver ends
-	-- up stranded on Finder with nothing to land on, reading blank as you
-	-- move around.
-	set previousAppName to ""
+	-- The app lives in ../helpers/ relative to this script's folder
+	-- (apple_scripts/). "open -n" starts a fresh copy each time, since args
+	-- are only passed to a newly launched copy; the app closes any older one.
+	-- open returns as soon as the app has launched, without waiting for the
+	-- window to be closed.
+	set appPath to (my scriptFolder()) & "../helpers/LastSpokenText.app"
 	try
-		tell application "System Events"
-			set previousAppName to name of (first process whose frontmost is true)
-		end tell
-		my logDebug("lastspoken | previousAppName=" & previousAppName)
+		do shell script "open -n " & quoted form of appPath & " --args " & quoted form of theText
+		my logDebug("lastspoken | opened " & appPath)
 	on error errMsg2
-		my logDebug("lastspoken | previousAppName lookup FAILED: " & errMsg2)
+		my logDebug("lastspoken | opening " & appPath & " FAILED: " & errMsg2)
+		tell application "VoiceOver" to output "Could not open the Last Spoken Text window"
 	end try
-
-	-- Show it via System Events rather than directly: a dialog shown by this
-	-- script's own process has nowhere to render under VoiceOver Commander
-	-- and just hangs instead of erroring, since whatever runs Commander
-	-- scripts isn't a normal foreground GUI process. System Events is always
-	-- running as a proper GUI-capable process, so routing the dialog through
-	-- it gives it somewhere to show (matching speak_menu's picker) - and,
-	-- unlike a Finder-hosted dialog, it actually shows up in VoiceOver's
-	-- application chooser if you lose track of it. An earlier version of
-	-- this script used Finder instead, on the theory that System Events
-	-- wouldn't reliably receive Return since "activate" on it returns
-	-- without error but "frontmost" stays false; retesting found Return
-	-- does reach it fine either way - it was Escape that never worked
-	-- (see the note above run), and that's a Cocoa text-field quirk
-	-- unrelated to which app hosts the dialog.
-	try
-		tell application "System Events" to activate
-	on error errMsg3
-		my logDebug("lastspoken | activate System Events FAILED: " & errMsg3)
-	end try
-
-	-- The button is both the default and the cancel button, so both Return
-	-- and a click/VO-Space on it raise the same "user cancelled" (-128)
-	-- error - there's no button-press case that returns normally here.
-	-- "giving up after" covers the third case: nobody touches the dialog at
-	-- all (e.g. cmd-tabbed away) - it self-dismisses and returns normally
-	-- instead of hanging, with "gave up" true in the result record.
-	try
-		tell application "System Events"
-			set dialogResult to (display dialog "VoiceOver last said:" with title "Last Spoken Text" default answer theText buttons {"Close"} default button "Close" cancel button "Close" giving up after 30)
-		end tell
-		if gave up of dialogResult then
-			my logDebug("lastspoken | dialog timed out after 30s without being dismissed (probably lost focus) - giving up so it doesn't block later commands")
-		else
-			my logDebug("lastspoken | dialog returned without an error (unexpected)")
-		end if
-	on error errMsg4 number errNum
-		if errNum is -128 then
-			my logDebug("lastspoken | dialog dismissed")
-		else
-			my logDebug("lastspoken | display dialog FAILED (" & errNum & "): " & errMsg4)
-		end if
-	end try
-
-	if previousAppName is not "" then
-		try
-			tell application previousAppName to activate
-			my logDebug("lastspoken | reactivated " & previousAppName)
-		on error errMsg5
-			my logDebug("lastspoken | reactivate " & previousAppName & " FAILED: " & errMsg5)
-		end try
-	end if
 end run
+
+-- Returns the POSIX path (with trailing slash) of the folder containing
+-- this running script, so appPath tracks wherever the repo was cloned to
+-- instead of a hardcoded path.
+on scriptFolder()
+	set scriptPosixPath to POSIX path of (path to me)
+	return (do shell script "dirname " & quoted form of scriptPosixPath) & "/"
+end scriptFolder
 
 -- Appends a line to ~/Library/Logs/VoiceOverExtensions.log for troubleshooting.
 -- Never lets a logging failure interrupt the main behaviour.

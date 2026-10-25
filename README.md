@@ -34,7 +34,7 @@ These can be assigned using VoiceOver Utility COmmands section.
 
 7. **`last_spoken_text`** — this pops up the last spoken text into a text box.
 This is handy for the times VO struggles to pronounce something properly and saves having to copy/paste the text elsewhere.
-Note: pressing enter on this dialog will close it.
+The text is read-only and starts selected, so Cmd-C copies it straight away. Return or Escape closes it.
 
 
 8. **`speak_menu`** — shows a list of the other scripts and runs whichever
@@ -57,13 +57,17 @@ make
 
 This only rebuilds the scripts whose source has changed.
 
-To rebuild the helper after editing `ax_table_position.swift`:
+To rebuild the Swift helpers after editing `ax_table_position.swift` or
+`last_spoken_text_window.swift`:
 
 ```bash
 make helper
 ```
 
-The helper is shared by `speak_table_position`, `speak_row_header` and
+`last_spoken_text_window.swift` builds `helpers/LastSpokenText.app`, the
+window the last spoken text script opens.
+
+The `ax_table_position` helper is shared by `speak_table_position`, `speak_row_header` and
 `speak_column_header`. If they never find anything (always
 "Could not determine table position" / "Could not find a row/column header" with
 no log entries at all, rather than an "UNRESOLVED" entry), the helper binary itself may need to be granted access under
@@ -83,16 +87,6 @@ needs its own permission entry, added via the **+** button and browsing to
 
 Also there is a setting in VO Utility under General "Allow VoiceOver to be controlled with AppleScript" which may be enabled for some functions.
 
-The last spoken text script needs an extra one-time permission**, beyond the Accessibility
-grant the other scripts need: the first time it runs, macOS may prompt to
-let the process running your Commander scripts control `Finder` - allow
-it. If it instead just silently fails with no visible text box (turn on
-`debugLogging` as described under Troubleshooting log below, and check
-`~/Library/Logs/VoiceOverExtensions.log` for `display dialog FAILED
-(-1743)`), that permission was denied or never prompted; grant it manually
-under **System Settings → Privacy & Security → Automation**, by finding
-the entry for whatever process runs your Commander scripts and enabling
-its `Finder` checkbox.
 
 ## Troubleshooting log
 
@@ -113,11 +107,9 @@ a specific app. Set it back to `false` (and delete the log file) when done.
 
 # Known Issues
 
-If you use one of the scripts that shows a ui (the menu or show last spoken text) and then switch away from that window without closing it,
-then you can block other Apple scripts from running with VoiceOver for a time. (This is why the dialogs close after 30 seconds).
+If you open the menu and then switch away from it without closing it,
+then you can block other Apple scripts from running with VoiceOver for a time. (This is why the menu gives up after 20 seconds).
 
-If you run into this, you can use VM+F1, F1 to find the dialog, and then close it properly.
-
-Sometimes VO won't properly speak the last spoken text. You can use VO+F6 to speak the selection if it doesn't, or do the VO+right, VO+left shuffle to try it again.
+If you run into this, you can use VO+F1, F1 to find the menu, and then close it properly.
 
 The compiled Swift code only works for Apple Silicon - Intel Mac users will have to recompile.
