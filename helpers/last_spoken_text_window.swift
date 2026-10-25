@@ -32,6 +32,11 @@
 
 import AppKit
 
+// Seconds after the window opens before announcing the text (see
+// applicationDidFinishLaunching). Raise it if the full preamble still
+// sometimes gets read out before or after the text.
+let announceDelay = 0.4
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let text: String
     // Whichever app was frontmost at launch (i.e. what you were using when
@@ -68,6 +73,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+
+        // On opening, VoiceOver reads out the app name, the window title, the
+        // text and "has keyboard focus" all in one go. Once it has started on
+        // that, a high-priority announcement of just the text cuts it short,
+        // so mostly only the text is heard. Too early and VoiceOver's own
+        // focus speech would cut off the announcement instead.
+        DispatchQueue.main.asyncAfter(deadline: .now() + announceDelay) { [weak self] in
+            guard let self, !self.text.isEmpty else { return }
+            NSAccessibility.post(
+                element: NSApp as Any,
+                notification: .announcementRequested,
+                userInfo: [
+                    .announcement: self.text,
+                    .priority: NSAccessibilityPriorityLevel.high.rawValue,
+                ])
+        }
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -135,7 +156,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         textView.isRichText = false
         textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize + 2)
         textView.textContainerInset = NSSize(width: 4, height: 4)
-        textView.setAccessibilityLabel("VoiceOver last said")
 
         let button = NSButton(title: "Close", target: self, action: #selector(close))
         button.translatesAutoresizingMaskIntoConstraints = false
